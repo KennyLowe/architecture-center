@@ -69,7 +69,7 @@ These two use-cases have different requirements. The first must be optimized for
 
 We use [Event Hubs Capture](/azure/event-hubs/event-hubs-capture-overview) to deliver the streaming data from Event Hubs into Data Lake without writing any code. You can easily set up Event Hubs Capture using an Azure Resource Manager template.
 
-For optimal performance, Microsoft recommends storing data in Data Lake Store in larger sized files (at least 256MB), and organizing time-series data into folders partitioned by date. For more information, see [Tuning Azure Data Lake Store for performance](/azure/data-lake-store/data-lake-store-performance-tuning-guidance). However, that structure is not optimal for looking up individual records by ID. Therefore, the Delivery History service also stores data in Cosmos DB for quicker lookup. Only the fields needed to query the status of a delivery are stored in Cosmos DB. Periodically, older history data can be purged from Cosmos DB by running an occasional batch process. 
+For optimal performance, Microsoft recommends storing data in Data Lake Store in larger sized files (at least 256MB), and organizing time-series data into folders partitioned by date. (See [Tuning Azure Data Lake Store for performance](/azure/data-lake-store/data-lake-store-performance-tuning-guidance)). However, that structure is not optimal for looking up individual records by ID. Therefore, the Delivery History service also stores data in Cosmos DB for quicker lookup. Only the fields needed to query the status of a delivery are stored in Cosmos DB. Periodically, older history data can be purged from Cosmos DB by running an occasional batch process. 
 
 ### Package service
 

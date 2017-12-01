@@ -29,7 +29,7 @@ Note that DDD is an iterative, ongoing process. Service boundaries aren't fixed 
 
 Before writing any code, you need a bird's eye view of the entire system that you are creating. Domain driven design (DDD) is an approach to software design that starts by modeling the business domain.  A domain model is an abstract model of the domain. It distills and organizes domain knowledge, and provides a common language for developers and domain experts. 
 
-A domain model must include behaviors and business rules &mdash; it's not just a data schema or an object graph. The domain model is not code. The application code conforms to the model, and expresses the model, but the model is logically separate from the implementation. (However, don't make the mistake of thinking that DDD has to follow a waterfall model, where the domain model is finalized before starting to implement. The domain model should evolve with the application.)
+A domain model must include behaviors and business rules &mdash; it's not just a data schema or an object graph. The domain model is not code. The application code conforms to the model, and expresses the model, but the model is logically separate from the implementation. The domain model doesn't need to be finalized before starting to implement; it will evolve with the application.
 
 Using a DDD approach will help you to design microservices so that every service forms a natural fit to a functional business requirement. It can help you to avoid the trap of letting your design be dictated by organizational boundaries or technology choices &mdash; say, putting unrelated functionality into the same service simply because they both use a SQL database.
 
@@ -44,7 +44,7 @@ After an initial domain analysis, the team came up with the following rough sket
 - **Shipping** is placed in the center of the diagram, because it's core to the business. Everything else in the diagram exists to enable this functionality.
 - **Drone management** is also core to the business. Functionality that is closely related to drone management include **drone repair** and using **predictive analysis** to predict when drones need servicing and maintenance. 
 - **ETA analysis** provides time estimates for pickup and delivery. **Third-party transportation** will enable the application to schedule alternative transportation methods if the delivery cannot be made entirely via drone.
-- **Drone sharing** is a possible extension of the core business. The company may have excess drone capacity during certain hours, and could rent out drones that would otherwise be idle. This feature will not be in v1 of the application.
+- **Drone sharing** is a possible extension of the core business. The company may have excess drone capacity during certain hours, and could rent out drones that would otherwise be idle. This feature will not be in the initial release.
 - **Video surveillance** is another area that the company might expand into later.
 - **User accounts**, **Invoicing**, and **Call center** are subdomains that support the core business.
  
@@ -100,7 +100,7 @@ Traditional applications have often used database transactions to enforce consis
 **Domain and application services**. In DDD terminology, a service is an object that implements some logic without holding any state. Evans distinguishes between *domain services*, which encapsulate domain logic, and *application services*, which provide technical functionality, such as user authentication or sending an SMS message. Domain services are often used to model behavior that spans multiple entities. 
 
 > [!NOTE]
-> The term *service* is overloaded in computer science. The definition here is not directly related to microservices.
+> The term *service* is overloaded in software development. The definition here is not directly related to microservices.
 
 **Domain events**. Domain events can be used to notify other parts of the system when something happens. As the name suggests, domain events should model things that are meaningful in terms of the domain, not the implementation details. For example, "Record inserted in table" is not a domain event. "Delivery cancelled" is a domain event. Domain events are especially relevant in a microservices architecture, where services are distributed and do not share data stores. The chapter [Interservice communication](./interservice-communication.md) looks at asynchronous messaging in microservices.
  

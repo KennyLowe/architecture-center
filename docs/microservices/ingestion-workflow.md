@@ -1,6 +1,6 @@
 # Designing microservices: Ingestion and workflow
 
-Microservices often have a workflow that spans multiple services for a single transaction. The workflow must be reliable; it can't lose transactions or leave them in a partially completed state. It's also critical to control the ingestion rate of incoming requests. With many small services communicating with each other, a burst of incoming requests can overwhelm the inter-service communication. 
+Microservices often have a workflow that spans multiple services for a single transaction. The workflow must be reliable; it can't lose transactions or leave them in a partially completed state. It's also critical to control the ingestion rate of incoming requests. With many small services communicating with each other, a burst of incoming requests can overwhelm the interservice communication. 
 
 ![](./images/ingestion-workflow.png)
 
@@ -16,7 +16,7 @@ In the Drone Delivery application, the following operations must be performed to
 
 This is the core of the entire application, so the end-to-end process must be performant as well as reliable. Some particular challenges must be addressed:
 
-- **Load leveling**. Too many client requests can overwhelm the system with inter-service network traffic. It can also overwhelm backend dependencies such as storage or remote services. These may react by throttling the services calling them, creating back pressure in the system. Therefore, it's important to load level the requests coming into the system, by putting them into a buffer or queue for processing. 
+- **Load leveling**. Too many client requests can overwhelm the system with interservice network traffic. It can also overwhelm backend dependencies such as storage or remote services. These may react by throttling the services calling them, creating back pressure in the system. Therefore, it's important to load level the requests coming into the system, by putting them into a buffer or queue for processing. 
 
 - **Guaranteed delivery**. To avoid dropping any client requests, the ingestion component must guarantee at-least-once delivery of messages. 
 

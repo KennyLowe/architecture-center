@@ -109,7 +109,7 @@ As a result, code has a smaller surface area. If the Drone Management service de
 
 In this guidance, we focus less on OO coding principles, and put more emphasis on API design. But it turns out that RESTful APIs can model many of the tactical DDD concepts.
 
-- RESTful APIs model *resources*, which map naturally to aggregates. Aggregates are consistency boundaries. Operations on aggregates should never leave an aggregate in an inconsistent state.  Instead of creating APIs allow a client to manipulate the internal state of an aggregate, favor coarse-grained APIs that expose aggregates as resources.
+- RESTful APIs model *resources*, which map naturally to aggregates. Aggregates are consistency boundaries. Operations on aggregates should never leave an aggregate in an inconsistent state.  Instead of creating APIs that allow a client to manipulate the internal state of an aggregate, favor coarse-grained APIs that expose aggregates as resources.
 
 - Aggregates are addressable by ID. Aggregates correspond to resources, and the URL is the stable identifier.
 

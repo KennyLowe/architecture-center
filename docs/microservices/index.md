@@ -35,7 +35,7 @@ Done correctly, microservices can provide a number of useful benefits:
 
 - **Resiliency**. If an individual microservice becomes unavailable, it won't disrupt the entire application, as long as any upstream microserves are designed to handle faults correctly (for example, by implementing circuit breaking). 
 
-- **Scalability**. At cloud scale, you want to scale out the subsystems that require more resources, without scaling out the entire application. A microservices architecture allows each microservice to be scaled independently. At the same time, by running services in containers, you pack a higher density of service instances onto a single host. 
+- **Scalability**. At cloud scale, you want to scale out the subsystems that require more resources, without scaling out the entire application. A microservices architecture allows each microservice to be scaled independently. By running services in containers, you can also pack a higher density of service instances onto a single host. 
 
 - **Data isolation**. It is much easier to perform schema updates, because only a single microservice is impacted. In a monolithic application, it is much harder to do schema updates, because different parts of the application may use the same data at different times.
  
@@ -55,7 +55,7 @@ These benefits don't come for free. This series of articles is designed to addre
 
 - **Monitoring**. Monitoring a distributed application can be a lot harder than a monolithic application, because you must correlate telemetry from multiple services. The chapter [Logging and monitoring](./logging-monitoring.md) addresses these concerns.
 
-- **CI/CD**. One of the main goals of microservices is agility. To achieve this, you must have automated and robust [CI/CD](./ci-cd.md), so that you can quickly and reliably deploy individual services into test and production environments.
+- **Continuous integration and delivery (CI/CD)**. One of the main goals of microservices is agility. To achieve this, you must have automated and robust [CI/CD](./ci-cd.md), so that you can quickly and reliably deploy individual services into test and production environments.
 
 - **Team structure**. Can you successfully organize into small, semi-independent teams? Do you have a strong DevOps culture? [Conway's law](https://en.wikipedia.org/wiki/Conway%27s_law) says that organizations create software that mirrors their organizational structure. If your team structure and processes still reflect a "monolithic app" worldview, it will be hard to achieve the agility that microservices promise. Team organization is not a topic that we explore deeply in this series, but it's something to consider before you embark on a microservices architecture.
 
