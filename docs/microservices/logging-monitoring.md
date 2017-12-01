@@ -137,7 +137,7 @@ export interface ILogger {
 }
 ```
 
-Here is the implementation of `ILogger` that wraps the Winston library. It takes the correlation ID as a constructor parameter, and injects the ID into every log message. 
+Here is an `ILogger` implementation that wraps the Winston library. It takes the correlation ID as a constructor parameter, and injects the ID into every log message. 
 
 ```ts
 class WinstonLogger implements ILogger {
@@ -164,10 +164,11 @@ class WinstonLogger implements ILogger {
 }
 ```
 
-The Package service needs to extract the correlation ID from the HTTP request. For example, if you're using linkerd, the correlation ID is found in the `l5d-ctx-trace` header. In Koa, the HTTP request is stored in a Context object that gets passed through the request processing pipeline. We can define a middleware function to get the correlation ID from the Context and initialize the logger. (A middleware function is simply a function that gets executed for each request.)
+The Package service needs to extract the correlation ID from the HTTP request. For example, if you're using linkerd, the correlation ID is found in the `l5d-ctx-trace` header. In Koa, the HTTP request is stored in a Context object that gets passed through the request processing pipeline. We can define a middleware function to get the correlation ID from the Context and initialize the logger. (A middleware function in Koa is simply a function that gets executed for each request.)
 
 ```ts
 export type CorrelationIdFn = (ctx: Context) => string;
+
 export function logger(level: string, getCorrelationId: CorrelationIdFn) {
     winston.configure({ 
         level: level,
@@ -182,7 +183,7 @@ export function logger(level: string, getCorrelationId: CorrelationIdFn) {
 
 This middleware invokes a caller-defined function, `getCorrelationId`, to get the correlation ID. Then it creates an instance of the logger and stashes it inside `ctx.state`, which is a key-value dictionary used in Koa to pass information through the pipeline. 
 
-The logger middleware is gets added to the pipeline on startup:
+The logger middleware is added to the pipeline on startup:
 
 ```ts
 app.use(logger(Settings.logLevel(), function (ctx) {
@@ -213,7 +214,7 @@ async getById(ctx: any, next: any) {
 }
 ```
 
-We don't need to include the correlation ID in the logging statements, because that's done automatically by the middleware function. This makes the logging code cleaner, and reduces the chance that a devloper will forget to include the correlation ID. And because all of the logging statements use the abstract `ILogger` interface, it would be easy to change where the logs are written, or to replace the logger implementation entirely.
+We don't need to include the correlation ID in the logging statements, because that's done automatically by the middleware function. This makes the logging code cleaner, and reduces the chance that a developer will forget to include the correlation ID. And because all of the logging statements use the abstract `ILogger` interface, it would be easy to replace the logger implementation.
 
 > [!div class="nextstepaction"]
 > [Continuous integration and delivery](./ci-cd.md)
