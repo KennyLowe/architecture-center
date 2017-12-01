@@ -123,11 +123,9 @@ Another option is to send logs to Operations Management Suite (OMS) Log Analytic
 
 ## Example: Logging in the Package service
 
-To illustrate some of the points discussed in this chapter, here is an extended example of how logging was implemented in one of our services, the Package service. This service was written in TypeScript and uses the [Koa](http://koajs.com/) web framework for Node.js. 
+To illustrate some of the points discussed in this chapter, here is an extended example of how the Package service implements logging. The Package service was written in TypeScript and uses the [Koa](http://koajs.com/) web framework for Node.js. There are several Node.js logging libaries to choose from. We picked the [Winston](https://github.com/winstonjs/winston) libary because it's popular and because it met our performance requirements. 
 
-There are several Node.js logging libaries to choose from. We picked the [Winston](https://github.com/winstonjs/winston) libary because it's popular and because it met our performance requirements. 
-
-To encapsulate these implementation details, however, we first defined an abstract  `ILogger` interface:
+To encapsulate these implementation details, we defined an abstract  `ILogger` interface:
 
 ```ts
 export interface ILogger {
@@ -139,7 +137,7 @@ export interface ILogger {
 }
 ```
 
-Here is the `ILogger` implementation that wraps the Winston library:
+Here is the implementation of `ILogger`that wraps the Winston library. It takes the correlation ID as a constructor parameter, and injects the ID into every log message. 
 
 ```ts
 class WinstonLogger implements ILogger {
@@ -166,9 +164,7 @@ class WinstonLogger implements ILogger {
 }
 ```
 
-The logger takes the correlation ID as a constructor parameter, and injects the ID into every log message. Where does the correlation ID come from? The Package service has to extract it from the HTTP request. For example, if you're using linkerd, the correlation ID is found in the `l5d-ctx-trace` header. 
-
-In Koa, the HTTP request is stored in a Context object that gets passed through the request processing pipeline. We can define a *middleware function* to get the correlation ID from the Context and initialize the logger. A middleware function is simply a function that gets executed for each request. Here's the code for the logger middleware:
+The Package service needs to extract the correlation ID from the HTTP request. For example, if you're using linkerd, the correlation ID is found in the `l5d-ctx-trace` header. In Koa, the HTTP request is stored in a Context object that gets passed through the request processing pipeline. We can define a *middleware function* to get the correlation ID from the Context and initialize the logger. A middleware function is simply a function that gets executed for each request. 
 
 ```ts
 export type CorrelationIdFn = (ctx: Context) => string;
@@ -184,9 +180,7 @@ export function logger(level: string, getCorrelationId: CorrelationIdFn) {
 }
 ```
 
-This middleware invokes a caller-defined function, `getCorrelationId`, that returns a correlation ID. Next, it creates a logger instance and stashes the logger inside a key-value dictionary in the Context. 
-
-At startup, this middleware function is added to the Koa request pipeline:
+The middleware invokes a caller-defined function, `getCorrelationId`, to get the correlation ID. Then it creates an instance of the logger and stashes it inside `ctx.state`, which is that mechanis that Koa uses to pass information through the pipeline. The logger middleware is configured on startup:
 
 ```ts
 // Configure logging
@@ -195,7 +189,7 @@ app.use(logger(Settings.logLevel(), function (ctx) {
 }));
 ```
 
-Once everything is configured, it's easy to add logging statements to the code. For example, here is the method that looks up a package by ID:
+Once everything is configured, it's easy to add logging statements to the code. For example, here is the method that looks up a package by ID. It makes two calls to `logger.info`.
 
 ```ts
 async getById(ctx: any, next: any) {
@@ -219,8 +213,6 @@ async getById(ctx: any, next: any) {
 ```
 
 Notice that we don't need to include the correlation ID in the logging statements, because that's done automatically by the middleware function. This makes the logging code cleaner, and reduces the chance that a devloper will forget to include the correlation ID. And because all of the logging statements use the abstract `ILogger` interface, it would be easy to replace the logger implementation with something else.
-
-
 
 > [!div class="nextstepaction"]
 > [Continuous integration and delivery](./ci-cd.md)
