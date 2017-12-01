@@ -85,7 +85,7 @@ Some considerations when implementing distributed tracing:
 
 - Rather than a single opaque identifier, you might send a *correlation context* that includes richer information, such the caller-callee relationships. 
 
-- The Azure Application Insights SDK will automatically inject correlation IDs into HTTP headers, and includes the correlation ID in Application Insights logs. If you decide to use the correlation features built into Application Insights, some services may still need to explicitly propagate the correlation ID. For more information, see [Telemetry correlation in Application Insights](/azure/application-insights/application-insights-correlation).
+- The Azure Application Insights SDK will automatically inject correlation context into HTTP headers, and includes the correlation ID in Application Insights logs. If you decide to use the correlation features built into Application Insights, some services may still need to explicitly propagate the correlation headers, depending on the libraries being used. For more information, see [Telemetry correlation in Application Insights](/azure/application-insights/application-insights-correlation).
    
 - If you are using Istio or linkerd as a service mesh, these technologies automatically generate correlation headers when HTTP calls are routed through the service mesh proxies. Services should forward the relevant headers. 
 
@@ -93,7 +93,8 @@ Some considerations when implementing distributed tracing:
     
     - linkerd: [Context Headers](https://linkerd.io/config/1.3.0/linkerd/index.html#http-headers)
     
-- Consider how you will aggregate logs. You may want to standardize on a schema for including correlation IDs in logs across all services.
+- Consider how you will aggregate logs. You may want to standardize across teams on how to include correlation IDs in logs. Use a structured or semi-structured format, such as JSON, and define a common field to hold the correlation ID.
+
 
 ## Technology options
 
@@ -115,9 +116,112 @@ For system and container metrics, consider exporting metrics to a time-series da
 
 For application logs, consider using **Fluentd** and **Elasticsearch**. Fluentd is an open source data collector, and Elasticsearch is a document database that is highly optimized to act as a search engine. In this approach, each service sends logs to `stdout` and `stderr`, and Kubernetes writes these streams to the local file system. Fluentd collects the logs, optionally enriches them with additional metadata from Kubernetes, and sends the logs to Elasticsearch. Use Kibana, Grafana, or a similar tool to create a dashboard for Elasticsearch. Fluentd runs as a daemonset in the cluster, which ensures that one Fluentd pod is assigned to each node. You can configure Fluentd to collect kubelet logs as well as container logs. At high volumes, writing logs to the local file system could become a performance bottleneck, especially when multiple services are running on the same node. Monitor disk latency and file system utilization in production.
 
-One advantage of using Fluentd with Elasticsearch for logs is that services do not require any additional library dependencies. Each service just writes to `stdout` and `stderr`, and Fluentd handles exporting the logs into Elasticsearch. (It's still a good practice to use some kind of logging library or abstraction, to keep your code clean and modularized.) Also, the teams writing services don't need to understand how to configure the logging infrastructure. One challenge is to configure the Elasticsearch cluster for a production deployment, so that it scales to handle your traffic. You will also need to implement log rotation.
+One advantage of using Fluentd with Elasticsearch for logs is that services do not require any additional library dependencies. Each service just writes to `stdout` and `stderr`, and Fluentd handles exporting the logs into Elasticsearch. (It's still a good practice to use some kind of logging library or abstraction, to keep your code clean and modularized.) Also, the teams writing services don't need to understand how to configure the logging infrastructure. One challenge is to configure the Elasticsearch cluster for a production deployment, so that it scales to handle your traffic. 
 
 Another option is to send logs to Operations Management Suite (OMS) Log Analytics. The [Log Analytics][log-analytics] service collects log data into a central repository, and can also consolidate data from other Azure services that your application uses. For more information, see [Monitor an Azure Container Service cluster with Microsoft Operations Management Suite (OMS)][k8s-to-oms].
+
+
+
+### Logging implementation example
+
+To illustrate some of the points discussed in this chapter, here is an extended example of how logging was implemented in one of our services, the Package service. This service was written in TypeScript and uses the [Koa](http://koajs.com/) web framework for Node.js. 
+
+There are several Node.js logging libaries to choose from. We picked the [Winston](https://github.com/winstonjs/winston) libary because it's popular and because it met our performance requirements. 
+
+To encapsulate these implementation details, however, we first defined an abstract  `ILogger` interface:
+
+```ts
+export interface ILogger {
+    log(level: string, msg: string, meta?: any)
+    debug(msg: string, meta?: any)
+    info(msg: string, meta?: any)
+    warn(msg: string, meta?: any)
+    error(msg: string, meta?: any)
+}
+```
+
+Here is the `ILogger` implementation that wraps the Winston library:
+
+```ts
+class WinstonLogger implements ILogger {
+    constructor(private correlationId: string) {}
+    log(level: string, msg: string, payload?: any) {
+        var meta : any = {};
+        if (payload) { meta.payload = payload };
+        if (this.correlationId) { meta.correlationId = this.correlationId }
+        winston.log(level, msg, meta)
+    }
+  
+    info(msg: string, payload?: any) {
+        this.log('info', msg, payload);
+    }
+    debug(msg: string, payload?: any) {
+        this.log('debug', msg, payload);
+    }
+    warn(msg: string, payload?: any) {
+        this.log('warn', msg, payload);
+    }
+    error(msg: string, payload?: any) {
+        this.log('error', msg, payload);
+    }
+}
+```
+
+The logger takes the correlation ID as a constructor parameter, and injects the ID into every log message. Where does the correlation ID come from? The Package service has to extract it from the HTTP request. For example, if you're using linkerd, the correlation ID is found in the `l5d-ctx-trace` header. 
+
+In Koa, the HTTP request is stored in a Context object that gets passed through the request processing pipeline. We can define a *middleware function* to get the correlation ID from the Context and initialize the logger. A middleware function is simply a function that gets executed for each request. Here's the code for the logger middleware:
+
+```ts
+export type CorrelationIdFn = (ctx: Context) => string;
+export function logger(level: string, getCorrelationId: CorrelationIdFn) {
+    winston.configure({ 
+        level: level,
+        transports: [new (winston.transports.Console)()]
+        });
+    return async function(ctx: any, next: any) {
+        ctx.state.logger = new WinstonLogger(getCorrelationId(ctx));
+        await next();
+    }
+}
+```
+
+This middleware invokes a caller-defined function, `getCorrelationId`, that returns a correlation ID. Next, it creates a logger instance and stashes the logger inside a key-value dictionary in the Context. 
+
+At startup, this middleware function is added to the Koa request pipeline:
+
+```ts
+// Configure logging
+app.use(logger(Settings.logLevel(), function (ctx) {
+    return ctx.headers[Settings.correlationHeader()];  
+}));
+```
+
+Once everything is configured, it's easy to add logging statements to the code. For example, here is the method that looks up a package by ID:
+
+```ts
+async getById(ctx: any, next: any) {
+  var logger : ILogger = ctx.state.logger;
+  var packageId = ctx.params.packageId;
+  logger.info('Entering getById, packageId = %s', packageId);
+
+  await next();
+
+  let pkg = await this.repository.findPackage(ctx.params.packageId)
+
+  if (pkg == null) {
+    logger.info(`getById: %s not found`, packageId);
+    ctx.response.status= 404;
+    return;
+  }
+
+  ctx.response.status = 200;
+  ctx.response.body = this.mapPackageDbToApi(pkg);
+}
+```
+
+Notice that we don't need to include the correlation ID in the logging statements, because that's done automatically by the middleware function. This makes the logging code cleaner, and reduces the chance that a devloper will forget to include the correlation ID. And because all of the logging statements use the abstract `ILogger` interface, it would be easy to replace the logger implementation with something else.
+
+
 
 > [!div class="nextstepaction"]
 > [Continuous integration and delivery](./ci-cd.md)
