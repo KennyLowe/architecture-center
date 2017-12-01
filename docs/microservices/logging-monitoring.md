@@ -121,8 +121,7 @@ One advantage of using Fluentd with Elasticsearch for logs is that services do n
 Another option is to send logs to Operations Management Suite (OMS) Log Analytics. The [Log Analytics][log-analytics] service collects log data into a central repository, and can also consolidate data from other Azure services that your application uses. For more information, see [Monitor an Azure Container Service cluster with Microsoft Operations Management Suite (OMS)][k8s-to-oms].
 
 
-
-### Logging implementation example
+## Example: Logging in the Package service
 
 To illustrate some of the points discussed in this chapter, here is an extended example of how logging was implemented in one of our services, the Package service. This service was written in TypeScript and uses the [Koa](http://koajs.com/) web framework for Node.js. 
 
